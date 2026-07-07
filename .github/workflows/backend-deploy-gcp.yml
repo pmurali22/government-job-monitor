@@ -1,0 +1,62 @@
+name: Deploy Backend to Google Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - 'fly.toml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for GCR
+        run: gcloud auth configure-docker gcr.io
+
+      - name: Build Docker image
+        run: |
+          docker build -f backend/Dockerfile \
+            -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/government-job-monitor-api:latest \
+            -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/government-job-monitor-api:${{ github.sha }} \
+            .
+
+      - name: Push to Google Container Registry
+        run: |
+          docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/government-job-monitor-api:latest
+          docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/government-job-monitor-api:${{ github.sha }}
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy government-job-monitor-api \
+            --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/government-job-monitor-api:latest \
+            --platform managed \
+            --region us-central1 \
+            --allow-unauthenticated \
+            --memory 512Mi \
+            --cpu 1 \
+            --timeout 3600 \
+            --set-env-vars "DATABASE_URL=${{ secrets.DATABASE_URL }},SECRET_KEY=${{ secrets.SECRET_KEY }},GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }},EMAIL_FROM=${{ secrets.EMAIL_FROM }},TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }},TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}"
+
+      - name: Output Cloud Run URL
+        run: |
+          SERVICE_URL=$(gcloud run services describe government-job-monitor-api --platform managed --region us-central1 --format 'value(status.url)')
+          echo "Backend deployed to: $SERVICE_URL"
+          echo "BACKEND_URL=$SERVICE_URL" >> $GITHUB_OUTPUT

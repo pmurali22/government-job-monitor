@@ -1,0 +1,31 @@
+# Cloud Run service configuration
+# Deploy with: gcloud run deploy government-job-monitor-api --source . --region us-central1
+
+steps:
+  # Build the backend Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/government-job-monitor-api:latest'
+      - '-f'
+      - 'backend/Dockerfile'
+      - '.'
+
+  # Push to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/government-job-monitor-api:latest'
+
+  # Deploy to Cloud Run
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    args:
+      - 'run'
+      - '--filename=backend/'
+      - '--image=gcr.io/$PROJECT_ID/government-job-monitor-api:latest'
+      - '--location=us-central1'
+      - '--config=/workspace/backend/'
+
+images:
+  - 'gcr.io/$PROJECT_ID/government-job-monitor-api:latest'
