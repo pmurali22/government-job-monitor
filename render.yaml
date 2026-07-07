@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: government-job-monitor-api
+    env: docker
+    dockerfile: ./backend/Dockerfile
+    dockerfilePath: ./backend/Dockerfile
+    branch: main
+    envVars:
+      - key: DATABASE_URL
+        scope: run
+      - key: SECRET_KEY
+        scope: run
+      - key: GEMINI_API_KEY
+        scope: run
+      - key: EMAIL_FROM
+        scope: run
+      - key: TELEGRAM_BOT_TOKEN
+        scope: run
+      - key: TELEGRAM_CHAT_ID
+        scope: run
