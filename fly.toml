@@ -1,0 +1,31 @@
+# fly.toml app configuration file generated for government-job-monitor-api
+app = "government-job-monitor-api"
+primary_region = "iad"
+
+[build]
+  dockerfile = "backend/Dockerfile"
+
+[env]
+  DATABASE_URL = ""
+  SECRET_KEY = "your-secret-key-change-in-production"
+  GEMINI_API_KEY = ""
+  EMAIL_FROM = "noreply@example.com"
+  TELEGRAM_BOT_TOKEN = ""
+  TELEGRAM_CHAT_ID = ""
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+[[services]]
+  protocol = "tcp"
+  internal_port = 8000
+
+  [services.concurrency]
+    type = "connections"
+    hard_limit = 100
+    soft_limit = 80
